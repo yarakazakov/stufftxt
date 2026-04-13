@@ -4,7 +4,15 @@ import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import Breadcrumbs from "@/components/Breadcrumbs";
+import PasskeyRegister from "@/components/PasskeyRegister";
 import Link from "next/link";
+
+interface PasskeyInfo {
+  id: string;
+  credentialDeviceType: string;
+  credentialBackedUp: boolean;
+  createdAt: string;
+}
 
 export default function SettingsPage() {
   const { status } = useSession();
@@ -24,6 +32,9 @@ export default function SettingsPage() {
   const [codeInput, setCodeInput] = useState("");
   const [emailError, setEmailError] = useState("");
 
+  // Passkeys
+  const [passkeys, setPasskeys] = useState<PasskeyInfo[]>([]);
+
   useEffect(() => {
     if (status === "unauthenticated") router.push("/login");
     if (status === "authenticated") {
@@ -36,8 +47,25 @@ export default function SettingsPage() {
           setEmail(data.email || "");
           setEmailVerified(data.emailVerified || false);
         });
+      loadPasskeys();
     }
   }, [status, router]);
+
+  const loadPasskeys = async () => {
+    const res = await fetch("/api/passkeys");
+    if (res.ok) {
+      const data = await res.json();
+      setPasskeys(data);
+    }
+  };
+
+  const handleDeletePasskey = async (id: string) => {
+    if (!confirm("are you sure you want to remove this passkey?")) return;
+    const res = await fetch(`/api/passkeys/${id}`, { method: "DELETE" });
+    if (res.ok) {
+      loadPasskeys();
+    }
+  };
 
   const handleSave = async () => {
     setError("");
@@ -171,6 +199,46 @@ export default function SettingsPage() {
       {saved && <p style={{ color: "green", marginBottom: 8 }}>saved</p>}
 
       <button onClick={handleSave}>save changes</button>
+
+      {/* Passkeys */}
+      <div style={{ marginTop: 32, borderTop: "1px solid #ccc", paddingTop: 16 }}>
+        <h2>passkeys</h2>
+        {passkeys.length === 0 ? (
+          <p style={{ color: "#666", margin: "8px 0" }}>
+            no passkeys registered. add one to log in without your key.
+          </p>
+        ) : (
+          <div style={{ margin: "8px 0" }}>
+            {passkeys.map((pk) => (
+              <div
+                key={pk.id}
+                style={{
+                  padding: "6px 0",
+                  borderBottom: "1px solid #eee",
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                }}
+              >
+                <span>
+                  {pk.credentialDeviceType === "multiDevice" ? "synced passkey" : "device passkey"}
+                  {pk.credentialBackedUp && " (backed up)"}
+                  <span style={{ color: "#666", fontSize: 13, marginLeft: 8 }}>
+                    added {new Date(pk.createdAt).toLocaleDateString()}
+                  </span>
+                </span>
+                <button
+                  onClick={() => handleDeletePasskey(pk.id)}
+                  style={{ color: "red", fontSize: 13 }}
+                >
+                  remove
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+        <PasskeyRegister onRegistered={loadPasskeys} />
+      </div>
 
       {/* Email modal */}
       {showEmailModal && (

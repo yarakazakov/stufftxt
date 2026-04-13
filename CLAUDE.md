@@ -7,6 +7,7 @@
 - Plain CSS (no Tailwind, no frameworks)
 - bcryptjs для хэширования паролей
 - sharp для обработки изображений
+- @simplewebauthn/server + @simplewebauthn/browser для WebAuthn/Passkeys
 
 ## Design — "Reimagined Windows XP"
 - НИКАКИХ: теней, градиентов, border-radius, анимаций, иконок
@@ -51,3 +52,11 @@
 - [x] Поиск
 - [x] Привязка email + sticky banner
 - [x] Навигация / breadcrumbs
+- [x] Passkeys (WebAuthn)
+
+## WebAuthn / Passkeys
+- Конфиг: src/lib/webauthn.ts
+- API: /api/passkeys/*
+- Challenge хранится в httpOnly cookie (60s TTL)
+- RP ID: localhost (dev), поменять на реальный домен для prod
+- Env vars: WEBAUTHN_RP_ID, WEBAUTHN_ORIGIN

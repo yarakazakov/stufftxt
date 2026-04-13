@@ -18,11 +18,12 @@ model User {
   bio           String?
   createdAt     DateTime  @default(now())
 
-  folders   Folder[]
-  items     Item[]
-  followers Follow[] @relation("following")
-  following Follow[] @relation("followers")
+  folders        Folder[]
+  items          Item[]
+  followers      Follow[] @relation("following")
+  following      Follow[] @relation("followers")
   verificationCodes VerificationCode[]
+  authenticators Authenticator[]
 }
 
 model Folder {
@@ -73,6 +74,20 @@ model VerificationCode {
   code      String
   expiresAt DateTime
   createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Authenticator {
+  id                    String   @id @default(cuid())
+  userId                Int
+  credentialId          String   @unique
+  credentialPublicKey   Bytes
+  counter               BigInt
+  credentialDeviceType  String
+  credentialBackedUp    Boolean
+  transports            String?
+  createdAt             DateTime @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
