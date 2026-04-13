@@ -1,13 +1,78 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Get a free hosted Postgres database in seconds: `npx create-db`
-
 generator client {
-  provider = "prisma-client"
-  output   = "../src/generated/prisma"
+  provider = "prisma-client-js"
 }
 
 datasource db {
   provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            Int       @id @default(autoincrement())
+  username      String    @unique
+  passwordHash  String
+  email         String?
+  emailVerified Boolean   @default(false)
+  displayName   String?
+  avatarUrl     String?
+  bio           String?
+  createdAt     DateTime  @default(now())
+
+  folders   Folder[]
+  items     Item[]
+  followers Follow[] @relation("following")
+  following Follow[] @relation("followers")
+  verificationCodes VerificationCode[]
+}
+
+model Folder {
+  id          Int       @id @default(autoincrement())
+  userId      Int
+  name        String
+  description String?
+  isPublic    Boolean   @default(false)
+  slug        String    @unique
+  order       Int       @default(0)
+  createdAt   DateTime  @default(now())
+
+  user  User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items Item[]
+}
+
+model Item {
+  id          Int       @id @default(autoincrement())
+  userId      Int
+  folderId    Int
+  title       String
+  description String?
+  url         String?
+  imageUrl    String?
+  order       Int       @default(0)
+  createdAt   DateTime  @default(now())
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  folder Folder @relation(fields: [folderId], references: [id], onDelete: Cascade)
+}
+
+model Follow {
+  id          Int      @id @default(autoincrement())
+  followerId  Int
+  followingId Int
+  createdAt   DateTime @default(now())
+
+  follower  User @relation("followers", fields: [followerId], references: [id], onDelete: Cascade)
+  following User @relation("following", fields: [followingId], references: [id], onDelete: Cascade)
+
+  @@unique([followerId, followingId])
+}
+
+model VerificationCode {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  email     String
+  code      String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
