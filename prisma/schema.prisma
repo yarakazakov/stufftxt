@@ -24,6 +24,7 @@ model User {
   following      Follow[] @relation("followers")
   verificationCodes VerificationCode[]
   authenticators Authenticator[]
+  feedEvents     FeedEvent[]
 }
 
 model Folder {
@@ -36,8 +37,9 @@ model Folder {
   order       Int       @default(0)
   createdAt   DateTime  @default(now())
 
-  user  User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  items Item[]
+  user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items      Item[]
+  feedEvents FeedEvent[]
 }
 
 model Item {
@@ -51,8 +53,9 @@ model Item {
   order       Int       @default(0)
   createdAt   DateTime  @default(now())
 
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  folder Folder @relation(fields: [folderId], references: [id], onDelete: Cascade)
+  user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  folder     Folder      @relation(fields: [folderId], references: [id], onDelete: Cascade)
+  feedEvents FeedEvent[]
 }
 
 model Follow {
@@ -90,4 +93,19 @@ model Authenticator {
   createdAt             DateTime @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model FeedEvent {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  itemId    Int
+  folderId  Int
+  createdAt DateTime @default(now())
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  item   Item   @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  folder Folder @relation(fields: [folderId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([createdAt])
 }

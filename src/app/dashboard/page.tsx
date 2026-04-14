@@ -416,6 +416,8 @@ export default function DashboardPage() {
         <div>
           <h1>hi, {session.user.username}</h1>
           <div style={{ fontSize: 13, color: "#666" }}>
+            <Link href="/feed">feed</Link>
+            {" | "}
             <Link href="/dashboard/settings">settings</Link>
             {" | "}
             <Link href="/dashboard/following">following</Link>

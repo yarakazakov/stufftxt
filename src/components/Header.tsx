@@ -41,6 +41,8 @@ export default function Header() {
       <nav>
         {status === "authenticated" && session?.user ? (
           <>
+            <Link href="/feed">feed</Link>
+            {" | "}
             <Link href="/search">search</Link>
             {" | "}
             <Link href={`/u/${session.user.username}`}>

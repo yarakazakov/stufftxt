@@ -39,5 +39,16 @@ export async function POST(req: Request) {
     },
   });
 
+  // Создаём FeedEvent только для публичных папок
+  if (folder.isPublic) {
+    await prisma.feedEvent.create({
+      data: {
+        userId: Number(session.user.id),
+        itemId: item.id,
+        folderId: Number(folderId),
+      },
+    });
+  }
+
   return NextResponse.json(item);
 }

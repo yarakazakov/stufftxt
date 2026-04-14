@@ -53,6 +53,7 @@
 - [x] Привязка email + sticky banner
 - [x] Навигация / breadcrumbs
 - [x] Passkeys (WebAuthn)
+- [x] Лента новостей (Feed)
 
 ## WebAuthn / Passkeys
 - Конфиг: src/lib/webauthn.ts
@@ -60,3 +61,11 @@
 - Challenge хранится в httpOnly cookie (60s TTL)
 - RP ID: localhost (dev), поменять на реальный домен для prod
 - Env vars: WEBAUTHN_RP_ID, WEBAUTHN_ORIGIN
+
+## Feed
+- Модель: FeedEvent (связь с User, Item, Folder)
+- API: GET /api/feed?cursor=&limit=20
+- Группировка: по userId + день → по folderId → items
+- Показывает только публичные папки
+- Событие создаётся при добавлении Item в публичную папку
+- Скрытие позиций: >5 в папке за день → "(+N more)"
