@@ -4,7 +4,6 @@ import { signIn } from "next-auth/react";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import TelegramLoginButton from "@/components/TelegramLoginButton";
 
 export default function LoginPage() {
   const [username, setUsername] = useState("");
@@ -77,29 +76,6 @@ export default function LoginPage() {
       <p style={{ marginTop: 16, color: "#666" }}>
         <Link href="/recover">forgot your key?</Link>
       </p>
-
-      {/* Разделитель */}
-      <div style={{ margin: "24px 0", borderTop: "1px solid #ccc", position: "relative" }}>
-        <span
-          style={{
-            position: "absolute",
-            top: -10,
-            left: "50%",
-            transform: "translateX(-50%)",
-            background: "#fff",
-            padding: "0 12px",
-            color: "#666",
-            fontSize: 13,
-          }}
-        >
-          or
-        </span>
-      </div>
-
-      {/* Telegram login */}
-      <div style={{ display: "flex", justifyContent: "center" }}>
-        <TelegramLoginButton />
-      </div>
     </div>
   );
 }
