@@ -97,19 +97,18 @@ export default function TelegramLoginButton({ callbackUrl = "/dashboard" }: Prop
         width: 48,
         height: 48,
         padding: 0,
-        border: "1px solid #ccc",
-        background: "#fff",
+        border: "none",
+        background: "transparent",
         display: "inline-flex",
         alignItems: "center",
         justifyContent: "center",
         cursor: "pointer",
       }}
     >
-      <svg width="32" height="32" viewBox="0 0 48 48" aria-hidden="true">
-        <circle cx="24" cy="24" r="24" fill="#229ED9" />
+      <svg width="32" height="32" viewBox="0 0 512 512" aria-hidden="true">
         <path
-          d="M10.8 23.3l24.5-9.4c1.1-.4 2.1.3 1.8 2l-4.2 19.7c-.3 1.3-1 1.7-2.1 1l-5.9-4.4-2.8 2.7c-.3.3-.6.6-1.2.6l.4-6 11-9.9c.5-.4-.1-.6-.7-.3L18 24.1l-5.8-1.8c-1.3-.4-1.3-1.3.6-2z"
-          fill="#fff"
+          fill="#000"
+          d="M256 0C114.6 0 0 114.6 0 256s114.6 256 256 256 256-114.6 256-256S397.4 0 256 0zm115.4 175.3l-38.6 181.8c-2.9 12.9-10.5 16.1-21.3 10l-58.8-43.3-28.4 27.3c-3.1 3.1-5.8 5.8-11.9 5.8l4.2-59.9 109-98.5c4.7-4.2-1-6.6-7.3-2.4L148.7 279.3 90.6 261.2c-12.6-4-12.9-12.6 2.6-18.6l322.7-124.4c10.5-3.8 19.7 2.6 16.4 16.1z"
         />
       </svg>
     </button>
