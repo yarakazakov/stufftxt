@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { generateAuthenticationOptions } from "@simplewebauthn/server";
+import type { AuthenticatorTransportFuture } from "@simplewebauthn/server";
 import { prisma } from "@/lib/prisma";
 import { rpID } from "@/lib/webauthn";
 import { cookies } from "next/headers";
@@ -8,7 +9,7 @@ export async function POST(req: Request) {
   const body = await req.json().catch(() => ({}));
   const { username } = body;
 
-  let allowCredentials: { id: string; transports?: string[] }[] | undefined;
+  let allowCredentials: { id: string; transports?: AuthenticatorTransportFuture[] }[] | undefined;
 
   // Если передан username — подтягиваем его authenticators
   if (username) {
