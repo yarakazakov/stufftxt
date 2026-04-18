@@ -4,7 +4,6 @@ import { signIn } from "next-auth/react";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import PasskeyLogin from "@/components/PasskeyLogin";
 import TelegramLoginButton from "@/components/TelegramLoginButton";
 
 export default function LoginPage() {
@@ -97,11 +96,8 @@ export default function LoginPage() {
         </span>
       </div>
 
-      {/* Passkey login */}
-      <PasskeyLogin />
-
       {/* Telegram login */}
-      <div style={{ marginTop: 16, display: "flex", justifyContent: "center" }}>
+      <div style={{ display: "flex", justifyContent: "center" }}>
         <TelegramLoginButton />
       </div>
     </div>
