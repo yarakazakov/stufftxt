@@ -4,10 +4,12 @@ import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useCallback } from "react";
 import Breadcrumbs from "@/components/Breadcrumbs";
+import Avatar from "@/components/Avatar";
 import Link from "next/link";
 
 interface FeedItem {
   id: number;
+  productId: number;
   title: string;
   url: string | null;
   imageUrl: string | null;
@@ -25,6 +27,7 @@ interface FeedPost {
     username: string;
     displayName: string | null;
     avatarUrl: string | null;
+    avatarPreset: string | null;
   };
   date: string;
   folders: FeedFolder[];
@@ -113,7 +116,7 @@ export default function FeedPage() {
     <div>
       <Breadcrumbs
         items={[
-          { label: "wishlist", href: "/dashboard" },
+          { label: "stuff.txt", href: "/dashboard" },
           { label: "feed" },
         ]}
       />
@@ -132,8 +135,6 @@ export default function FeedPage() {
       )}
 
       {posts.map((post, postIdx) => {
-        const avatarLetter = (post.user.username || "?")[0].toUpperCase();
-
         return (
           <div
             key={`${post.user.username}-${post.date}`}
@@ -145,24 +146,13 @@ export default function FeedPage() {
           >
             {/* Header: avatar + username + date */}
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
-              {post.user.avatarUrl ? (
-                <img src={post.user.avatarUrl} alt="" style={{ width: 24, height: 24 }} />
-              ) : (
-                <div
-                  style={{
-                    width: 24,
-                    height: 24,
-                    background: "#ccc",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    fontWeight: "bold",
-                    fontSize: 12,
-                  }}
-                >
-                  {avatarLetter}
-                </div>
-              )}
+              <Avatar
+                username={post.user.username}
+                avatarUrl={post.user.avatarUrl}
+                avatarPreset={post.user.avatarPreset}
+                size={24}
+                round
+              />
               <span>
                 <Link href={`/u/${post.user.username}`}>
                   {post.user.displayName || post.user.username}
@@ -193,7 +183,7 @@ export default function FeedPage() {
                   <div style={{ marginLeft: 16 }}>
                     {visibleItems.map((item) => (
                       <div key={item.id} style={{ padding: "1px 0" }}>
-                        &middot; {item.title}
+                        &middot; <Link href={`/products/${item.productId}`}>{item.title}</Link>
                         {item.url && (
                           <>
                             {" "}

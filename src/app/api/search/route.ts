@@ -30,28 +30,27 @@ export async function GET(req: Request) {
   }
 
   if (type === "items") {
-    const items = await prisma.item.findMany({
+    // Поиск по Product: только те, у которых есть хотя бы один Item в публичной папке.
+    // Атрибуция автора не возвращается.
+    const products = await prisma.product.findMany({
       where: {
         title: { contains: q },
-        folder: { isPublic: true },
+        items: {
+          some: {
+            folder: { isPublic: true },
+          },
+        },
       },
       select: {
         id: true,
         title: true,
+        url: true,
         imageUrl: true,
-        folder: {
-          select: {
-            name: true,
-            slug: true,
-            user: {
-              select: { username: true },
-            },
-          },
-        },
       },
       take: 50,
+      orderBy: { createdAt: "desc" },
     });
-    return NextResponse.json({ results: items });
+    return NextResponse.json({ results: products });
   }
 
   return NextResponse.json({ results: [] });

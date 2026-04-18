@@ -5,6 +5,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import PasskeyLogin from "@/components/PasskeyLogin";
+import TelegramLoginButton from "@/components/TelegramLoginButton";
 
 export default function LoginPage() {
   const [username, setUsername] = useState("");
@@ -41,7 +42,7 @@ export default function LoginPage() {
         <Link href="/register">don&apos;t have an account? register</Link>
       </p>
 
-      <form onSubmit={handleSubmit}>
+      <form onSubmit={handleSubmit} noValidate>
         <div style={{ marginBottom: 8 }}>
           <label htmlFor="username">username</label>
           <input
@@ -98,6 +99,11 @@ export default function LoginPage() {
 
       {/* Passkey login */}
       <PasskeyLogin />
+
+      {/* Telegram login */}
+      <div style={{ marginTop: 16, display: "flex", justifyContent: "center" }}>
+        <TelegramLoginButton />
+      </div>
     </div>
   );
 }

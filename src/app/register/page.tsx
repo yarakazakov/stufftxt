@@ -4,6 +4,7 @@ import { signIn } from "next-auth/react";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import TelegramLoginButton from "@/components/TelegramLoginButton";
 
 export default function RegisterPage() {
   const [username, setUsername] = useState("");
@@ -67,7 +68,7 @@ export default function RegisterPage() {
         <Link href="/login">already have an account? log in</Link>
       </p>
 
-      <form onSubmit={handleSubmit}>
+      <form onSubmit={handleSubmit} noValidate>
         <div style={{ marginBottom: 8 }}>
           <label htmlFor="username">username</label>
           <input
@@ -110,6 +111,29 @@ export default function RegisterPage() {
           {loading ? "creating..." : "create account"}
         </button>
       </form>
+
+      {/* Разделитель */}
+      <div style={{ margin: "24px 0", borderTop: "1px solid #ccc", position: "relative" }}>
+        <span
+          style={{
+            position: "absolute",
+            top: -10,
+            left: "50%",
+            transform: "translateX(-50%)",
+            background: "#fff",
+            padding: "0 12px",
+            color: "#666",
+            fontSize: 13,
+          }}
+        >
+          or
+        </span>
+      </div>
+
+      {/* Telegram login */}
+      <div style={{ display: "flex", justifyContent: "center" }}>
+        <TelegramLoginButton />
+      </div>
     </div>
   );
 }

@@ -4,15 +4,20 @@ import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useCallback } from "react";
 import Breadcrumbs from "@/components/Breadcrumbs";
+import Avatar from "@/components/Avatar";
+import FileInput from "@/components/FileInput";
 import Link from "next/link";
 
 interface Item {
   id: number;
-  title: string;
   description: string | null;
-  url: string | null;
-  imageUrl: string | null;
   order: number;
+  product: {
+    id: number;
+    title: string;
+    url: string | null;
+    imageUrl: string | null;
+  };
 }
 
 interface Folder {
@@ -27,8 +32,11 @@ interface Folder {
 interface Profile {
   displayName: string | null;
   avatarUrl: string | null;
+  avatarPreset: string | null;
   email: string | null;
   emailVerified: boolean;
+  followersCount: number;
+  followingCount: number;
 }
 
 export default function DashboardPage() {
@@ -71,6 +79,24 @@ export default function DashboardPage() {
   const [editItemUrl, setEditItemUrl] = useState("");
   const [editItemImage, setEditItemImage] = useState<string>("");
 
+  // Быстрое добавление (под шапкой)
+  const [showQuickAdd, setShowQuickAdd] = useState(false);
+  const [quickFolder, setQuickFolder] = useState<number | "__new__" | "">("");
+  const [quickTitle, setQuickTitle] = useState("");
+  const [quickDesc, setQuickDesc] = useState("");
+  const [quickUrl, setQuickUrl] = useState("");
+  const [quickImage, setQuickImage] = useState<string>("");
+
+  // Инлайн-создание папки в quick-add
+  const [inlineFolderName, setInlineFolderName] = useState("");
+  const [inlineFolderPublic, setInlineFolderPublic] = useState(false);
+  const [inlineFolderLoading, setInlineFolderLoading] = useState(false);
+
+  // OG meta suggestion
+  const [ogSuggestion, setOgSuggestion] = useState<{ title?: string; imageUrl?: string } | null>(null);
+  const [ogLoading, setOgLoading] = useState(false);
+  const [quickUrlFetched, setQuickUrlFetched] = useState("");
+
   const [formError, setFormError] = useState("");
 
   const loadFolders = useCallback(async () => {
@@ -101,6 +127,21 @@ export default function DashboardPage() {
       if (dismissed) setBannerDismissed(true);
     }
   }, [status, router, loadFolders, loadProfile]);
+
+  // Обновлять список папок, когда item добавлен из шапочного модала
+  useEffect(() => {
+    const handler = () => loadFolders();
+    window.addEventListener("stufftxt:item-added", handler);
+    return () => window.removeEventListener("stufftxt:item-added", handler);
+  }, [loadFolders]);
+
+  // Инициализация выбранной папки, когда quick-add открывается
+  useEffect(() => {
+    if (showQuickAdd && !quickFolder) {
+      if (folders.length === 0) setQuickFolder("__new__");
+      else setQuickFolder(folders[0].id);
+    }
+  }, [showQuickAdd, folders, quickFolder]);
 
   if (status !== "authenticated" || !session) return <p>loading...</p>;
 
@@ -209,6 +250,95 @@ export default function DashboardPage() {
     loadFolders();
   };
 
+  const handleInlineCreateFolder = async (): Promise<number | null> => {
+    if (!inlineFolderName.trim()) return null;
+    setInlineFolderLoading(true);
+    const res = await fetch("/api/folders", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: inlineFolderName.trim(), isPublic: inlineFolderPublic }),
+    });
+    setInlineFolderLoading(false);
+    if (!res.ok) return null;
+    const data = await res.json();
+    await loadFolders();
+    return data.id as number;
+  };
+
+  const fetchOgMeta = async (url: string) => {
+    if (!url || url === quickUrlFetched) return;
+    setQuickUrlFetched(url);
+    setOgLoading(true);
+    setOgSuggestion(null);
+    try {
+      const res = await fetch("/api/og-meta", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.imageUrl || data.title) setOgSuggestion(data);
+      }
+    } catch {
+      // silently ignore
+    }
+    setOgLoading(false);
+  };
+
+  const handleQuickAdd = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setFormError("");
+
+    let folderId: number;
+
+    if (quickFolder === "__new__") {
+      if (!inlineFolderName.trim()) {
+        setFormError("enter folder name");
+        return;
+      }
+      const newId = await handleInlineCreateFolder();
+      if (!newId) {
+        setFormError("failed to create folder");
+        return;
+      }
+      folderId = newId;
+      setQuickFolder(newId);
+      setInlineFolderName("");
+      setInlineFolderPublic(false);
+    } else if (quickFolder) {
+      folderId = quickFolder as number;
+    } else {
+      setFormError("choose a folder");
+      return;
+    }
+
+    const res = await fetch("/api/items", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        title: quickTitle,
+        description: quickDesc,
+        url: quickUrl,
+        imageUrl: quickImage,
+        folderId,
+      }),
+    });
+    if (!res.ok) {
+      const data = await res.json();
+      setFormError(data.error || "failed");
+      return;
+    }
+    setQuickTitle("");
+    setQuickDesc("");
+    setQuickUrl("");
+    setQuickImage("");
+    setOgSuggestion(null);
+    setQuickUrlFetched("");
+    setShowQuickAdd(false);
+    loadFolders();
+  };
+
   const handleUpdateItem = async (itemId: number) => {
     setFormError("");
     const res = await fetch(`/api/items/${itemId}`, {
@@ -301,16 +431,22 @@ export default function DashboardPage() {
     localStorage.setItem("emailBannerDismissed", "true");
   };
 
-  // Все позиции из всех папок
+  // Все позиции из всех папок (с разворотом product для удобства)
   const allItems = folders.flatMap((f) =>
-    f.items.map((item) => ({ ...item, folderName: f.name, folderId: f.id }))
+    f.items.map((item) => ({
+      id: item.id,
+      description: item.description,
+      title: item.product.title,
+      url: item.product.url,
+      imageUrl: item.product.imageUrl,
+      folderName: f.name,
+      folderId: f.id,
+    }))
   );
-
-  const avatarLetter = (session.user.username || "?")[0].toUpperCase();
 
   return (
     <div>
-      <Breadcrumbs items={[{ label: "wishlist", href: "/dashboard" }, { label: "dashboard" }]} />
+      <Breadcrumbs items={[{ label: "stuff.txt", href: "/dashboard" }, { label: "my stuff" }]} />
 
       {/* Email banner */}
       {!bannerDismissed && profile && !profile.email && (
@@ -395,46 +531,240 @@ export default function DashboardPage() {
 
       {/* Приветствие */}
       <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}>
-        {profile?.avatarUrl ? (
-          <img src={profile.avatarUrl} alt="" style={{ width: 40, height: 40 }} />
-        ) : (
-          <div
-            style={{
-              width: 40,
-              height: 40,
-              background: "#ccc",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              fontWeight: "bold",
-              fontSize: 18,
-            }}
-          >
-            {avatarLetter}
-          </div>
-        )}
+        <Avatar
+          username={session.user.username}
+          avatarUrl={profile?.avatarUrl}
+          avatarPreset={profile?.avatarPreset}
+          size={48}
+          round
+        />
         <div>
           <h1>hi, {session.user.username}</h1>
+          {profile && (
+            <div style={{ fontSize: 13, color: "#666" }}>
+              <Link href="/dashboard/followers">{profile.followersCount} followers</Link>
+              {" | "}
+              <Link href="/dashboard/following">{profile.followingCount} following</Link>
+            </div>
+          )}
           <div style={{ fontSize: 13, color: "#666" }}>
             <Link href="/feed">feed</Link>
             {" | "}
             <Link href="/dashboard/settings">settings</Link>
-            {" | "}
-            <Link href="/dashboard/following">following</Link>
-            {" | "}
-            <Link href="/dashboard/followers">followers</Link>
           </div>
         </div>
       </div>
 
-      {/* Кнопка новой папки */}
-      <div style={{ marginBottom: 16 }}>
-        <button onClick={() => setShowNewFolder(!showNewFolder)}>+ new folder</button>
+      {/* Быстрое добавление — компактная primary-кнопка */}
+      {!showQuickAdd && (
+        <div style={{ marginBottom: 32 }}>
+          <button
+            onClick={() => {
+              setShowQuickAdd(true);
+              if (folders.length === 0) {
+                setQuickFolder("__new__");
+              } else if (!quickFolder) {
+                setQuickFolder(folders[0].id);
+              }
+            }}
+            style={{
+              padding: "6px 16px",
+              fontSize: 14,
+              fontWeight: "bold",
+              border: "2px solid #000",
+              background: "#f0f0f0",
+            }}
+            title="add a new item"
+          >
+            + add item
+          </button>
+          <span style={{ marginLeft: 10, fontSize: 13, color: "#666" }}>
+            click here to add something to your list
+          </span>
+        </div>
+      )}
+
+      {showQuickAdd && (
+        <form
+          onSubmit={handleQuickAdd}
+          onPaste={(e) => handlePaste(e, setQuickImage)}
+          style={{ border: "1px solid #000", padding: 12, marginBottom: 16 }}
+          noValidate
+        >
+          <h3>add item</h3>
+          <div style={{ marginTop: 8, marginBottom: 8 }}>
+            <label>folder *</label>
+            <select
+              value={quickFolder}
+              onChange={(e) => {
+                const val = e.target.value;
+                setQuickFolder(val === "__new__" ? "__new__" : val === "" ? "" : Number(val));
+              }}
+              required
+            >
+              <option value="">— select —</option>
+              {folders.map((f) => (
+                <option key={f.id} value={f.id}>
+                  {f.name} {f.isPublic ? "[public]" : "[private]"}
+                </option>
+              ))}
+              <option value="__new__">+ create new folder</option>
+            </select>
+
+            {/* Инлайн-форма новой папки */}
+            {quickFolder === "__new__" && (
+              <div style={{ marginTop: 8, padding: "8px", border: "1px solid #ccc" }}>
+                <div style={{ marginBottom: 6 }}>
+                  <label style={{ fontSize: 13 }}>folder name *</label>
+                  <input
+                    value={inlineFolderName}
+                    onChange={(e) => setInlineFolderName(e.target.value)}
+                    placeholder="e.g. wishlist, tech, clothes"
+                    autoFocus
+                  />
+                </div>
+                <label style={{ fontSize: 13 }}>
+                  <input
+                    type="checkbox"
+                    checked={inlineFolderPublic}
+                    onChange={(e) => setInlineFolderPublic(e.target.checked)}
+                    style={{ width: "auto", marginRight: 4 }}
+                  />
+                  public (visible on your profile)
+                </label>
+              </div>
+            )}
+          </div>
+
+          <div style={{ marginBottom: 8 }}>
+            <label>url (link to product)</label>
+            <input
+              value={quickUrl}
+              onChange={(e) => {
+                setQuickUrl(e.target.value);
+                setOgSuggestion(null);
+                setQuickUrlFetched("");
+              }}
+              onBlur={(e) => {
+                const val = e.target.value.trim();
+                if (val) fetchOgMeta(val);
+              }}
+              type="url"
+            />
+            {ogLoading && <span style={{ fontSize: 12, color: "#666" }}> fetching page info...</span>}
+
+            {/* OG image suggestion */}
+            {ogSuggestion?.imageUrl && !quickImage && (
+              <div style={{ marginTop: 6, padding: "6px 8px", border: "1px solid #ccc", fontSize: 13 }}>
+                <span style={{ color: "#666" }}>suggested image from site:</span>{" "}
+                <img
+                  src={ogSuggestion.imageUrl}
+                  alt=""
+                  style={{ width: 48, height: 48, objectFit: "cover", verticalAlign: "middle", margin: "0 6px" }}
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    setQuickImage(ogSuggestion.imageUrl!);
+                    setOgSuggestion(null);
+                  }}
+                >
+                  use this
+                </button>
+                {" "}
+                <button
+                  type="button"
+                  onClick={() => setOgSuggestion(null)}
+                  style={{ fontSize: 12, color: "#666" }}
+                >
+                  ignore
+                </button>
+              </div>
+            )}
+
+            {/* OG title suggestion */}
+            {ogSuggestion?.title && !quickTitle && (
+              <div style={{ marginTop: 4, fontSize: 13, color: "#666" }}>
+                suggested title:{" "}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setQuickTitle(ogSuggestion.title!);
+                    setOgSuggestion((prev) => prev ? { ...prev, title: undefined } : null);
+                  }}
+                  style={{ fontSize: 13 }}
+                >
+                  use &ldquo;{ogSuggestion.title}&rdquo;
+                </button>
+              </div>
+            )}
+          </div>
+
+          <div style={{ marginBottom: 8 }}>
+            <label>title *</label>
+            <input value={quickTitle} onChange={(e) => setQuickTitle(e.target.value)} required />
+          </div>
+
+          <div style={{ marginBottom: 8 }}>
+            <label>photo (upload, paste URL, or Ctrl+V)</label>
+            <div style={{ marginBottom: 4 }}>
+              <FileInput accept="image/*" onChange={(e) => handleFileInput(e, setQuickImage)} />
+            </div>
+            <input
+              placeholder="or paste image URL"
+              value={quickImage}
+              onChange={(e) => setQuickImage(e.target.value)}
+            />
+            {quickImage && (
+              <div style={{ marginTop: 4 }}>
+                <img src={quickImage} alt="" style={{ maxWidth: 100, display: "block" }} />
+                <button type="button" onClick={() => setQuickImage("")} style={{ fontSize: 12, marginTop: 2 }}>remove</button>
+              </div>
+            )}
+          </div>
+
+          <div style={{ marginBottom: 8 }}>
+            <label>description (personal note)</label>
+            <textarea value={quickDesc} onChange={(e) => setQuickDesc(e.target.value)} />
+          </div>
+          {formError && <p style={{ color: "red", marginBottom: 8 }}>{formError}</p>}
+          <button type="submit" disabled={inlineFolderLoading}>
+            {inlineFolderLoading ? "creating folder..." : "save"}
+          </button>{" "}
+          <button type="button" onClick={() => {
+            setShowQuickAdd(false);
+            setOgSuggestion(null);
+            setQuickUrlFetched("");
+          }}>cancel</button>
+        </form>
+      )}
+
+      {/* Кнопка новой папки — secondary action, визуально отделена */}
+      <div
+        style={{
+          marginTop: 8,
+          marginBottom: 16,
+          paddingTop: 16,
+          borderTop: "1px dashed #ccc",
+          display: "flex",
+          alignItems: "center",
+          gap: 10,
+        }}
+      >
+        <button
+          onClick={() => setShowNewFolder(!showNewFolder)}
+          style={{ fontSize: 13, color: "#666" }}
+        >
+          + new folder
+        </button>
+        <span style={{ fontSize: 12, color: "#888" }}>
+          organize items into separate lists
+        </span>
       </div>
 
       {/* Форма новой папки */}
       {showNewFolder && (
-        <form onSubmit={handleCreateFolder} style={{ border: "1px solid #ccc", padding: 12, marginBottom: 16 }}>
+        <form onSubmit={handleCreateFolder} style={{ border: "1px solid #ccc", padding: 12, marginBottom: 16 }} noValidate>
           <h3>new folder</h3>
           <div style={{ marginTop: 8, marginBottom: 8 }}>
             <label htmlFor="folderName">name</label>
@@ -539,13 +869,13 @@ export default function DashboardPage() {
               </span>
             </span>
             {/* Превью фото (2x2 сетка) если свёрнуто */}
-            {!openFolders.has(folder.id) && folder.items.some((i) => i.imageUrl) && (
+            {!openFolders.has(folder.id) && folder.items.some((i) => i.product.imageUrl) && (
               <div style={{ display: "grid", gridTemplateColumns: "40px 40px", gap: 2 }}>
                 {folder.items
-                  .filter((i) => i.imageUrl)
+                  .filter((i) => i.product.imageUrl)
                   .slice(0, 4)
                   .map((i) => (
-                    <img key={i.id} src={i.imageUrl!} alt="" style={{ width: 40, height: 40, objectFit: "cover" }} />
+                    <img key={i.id} src={i.product.imageUrl!} alt="" style={{ width: 40, height: 40, objectFit: "cover" }} />
                   ))}
               </div>
             )}
@@ -614,6 +944,7 @@ export default function DashboardPage() {
                   onSubmit={(e) => handleCreateItem(e, folder.id)}
                   style={{ border: "1px solid #ccc", padding: 12, marginBottom: 8 }}
                   onPaste={(e) => handlePaste(e, setNewItemImage)}
+                  noValidate
                 >
                   <h3>add item</h3>
                   <div style={{ marginTop: 8, marginBottom: 8 }}>
@@ -630,12 +961,9 @@ export default function DashboardPage() {
                   </div>
                   <div style={{ marginBottom: 8 }}>
                     <label>photo (upload, paste URL, or Ctrl+V)</label>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={(e) => handleFileInput(e, setNewItemImage)}
-                      style={{ marginBottom: 4 }}
-                    />
+                    <div style={{ marginBottom: 4 }}>
+                      <FileInput accept="image/*" onChange={(e) => handleFileInput(e, setNewItemImage)} />
+                    </div>
                     <input
                       placeholder="or paste image URL"
                       value={newItemImage}
@@ -664,8 +992,8 @@ export default function DashboardPage() {
                     onClick={() => toggleItem(item.id)}
                     style={{ cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}
                   >
-                    {item.imageUrl && <img src={item.imageUrl} alt="" style={{ width: 24, height: 24 }} />}
-                    <span>{item.title}</span>
+                    {item.product.imageUrl && <img src={item.product.imageUrl} alt="" style={{ width: 24, height: 24 }} />}
+                    <span>{item.product.title}</span>
                   </div>
 
                   {/* Развёрнутая позиция */}
@@ -691,12 +1019,9 @@ export default function DashboardPage() {
                           </div>
                           <div style={{ marginBottom: 8 }}>
                             <label>photo</label>
-                            <input
-                              type="file"
-                              accept="image/*"
-                              onChange={(e) => handleFileInput(e, setEditItemImage)}
-                              style={{ marginBottom: 4 }}
-                            />
+                            <div style={{ marginBottom: 4 }}>
+                              <FileInput accept="image/*" onChange={(e) => handleFileInput(e, setEditItemImage)} />
+                            </div>
                             <input
                               placeholder="or paste image URL"
                               value={editItemImage}
@@ -712,23 +1037,23 @@ export default function DashboardPage() {
                         </div>
                       ) : (
                         <>
-                          {item.imageUrl && (
-                            <img src={item.imageUrl} alt="" style={{ maxWidth: 200, display: "block", marginBottom: 4 }} />
+                          {item.product.imageUrl && (
+                            <img src={item.product.imageUrl} alt="" style={{ maxWidth: 200, display: "block", marginBottom: 4 }} />
                           )}
                           {item.description && <p>{item.description}</p>}
-                          {item.url && (
+                          {item.product.url && (
                             <p>
-                              <a href={item.url} target="_blank" rel="noopener noreferrer">{item.url}</a>
+                              <a href={item.product.url} target="_blank" rel="noopener noreferrer">{item.product.url}</a>
                             </p>
                           )}
                           <div style={{ marginTop: 4, fontSize: 13 }}>
                             <button
                               onClick={() => {
                                 setEditingItem(item.id);
-                                setEditItemTitle(item.title);
+                                setEditItemTitle(item.product.title);
                                 setEditItemDesc(item.description || "");
-                                setEditItemUrl(item.url || "");
-                                setEditItemImage(item.imageUrl || "");
+                                setEditItemUrl(item.product.url || "");
+                                setEditItemImage(item.product.imageUrl || "");
                               }}
                             >
                               edit

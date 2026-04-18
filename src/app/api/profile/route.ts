@@ -16,13 +16,28 @@ export async function GET() {
       username: true,
       displayName: true,
       avatarUrl: true,
+      avatarPreset: true,
       bio: true,
       email: true,
       emailVerified: true,
+      _count: {
+        select: {
+          followers: true,
+          following: true,
+        },
+      },
     },
   });
 
-  return NextResponse.json(user);
+  if (!user) {
+    return NextResponse.json({ error: "not found" }, { status: 404 });
+  }
+
+  return NextResponse.json({
+    ...user,
+    followersCount: user._count.followers,
+    followingCount: user._count.following,
+  });
 }
 
 // PUT — обновление профиля
@@ -32,7 +47,7 @@ export async function PUT(req: Request) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 
-  const { displayName, bio, avatarUrl } = await req.json();
+  const { displayName, bio, avatarUrl, avatarPreset } = await req.json();
 
   const updated = await prisma.user.update({
     where: { id: Number(session.user.id) },
@@ -40,6 +55,7 @@ export async function PUT(req: Request) {
       displayName: displayName?.trim() || null,
       bio: bio?.trim()?.slice(0, 200) || null,
       avatarUrl: avatarUrl !== undefined ? avatarUrl : undefined,
+      avatarPreset: avatarPreset !== undefined ? avatarPreset : undefined,
     },
   });
 

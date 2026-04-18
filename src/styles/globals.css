@@ -18,7 +18,7 @@ a {
 }
 
 a:visited {
-  color: #551A8B;
+  color: #0000EE;
 }
 
 button {
@@ -28,15 +28,34 @@ button {
   cursor: pointer;
   font-size: inherit;
   font-family: inherit;
+  transition: background-color 80ms ease-out, color 80ms ease-out, border-color 80ms ease-out, transform 60ms ease-out;
+  -webkit-tap-highlight-color: transparent;
 }
 
 button:hover {
   background: #e0e0e0;
 }
 
+button:active:not(:disabled) {
+  background: #000;
+  color: #fff;
+  border-color: #000;
+  transform: scale(0.98);
+}
+
 button:disabled {
   opacity: 0.5;
   cursor: default;
+}
+
+/* Ссылки тоже хочется делать «отзывчивыми» при нажатии */
+a {
+  -webkit-tap-highlight-color: transparent;
+  transition: color 80ms ease-out, background-color 80ms ease-out;
+}
+
+a:active {
+  color: #000;
 }
 
 input, textarea, select {

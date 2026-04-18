@@ -5,6 +5,9 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import Breadcrumbs from "@/components/Breadcrumbs";
 import PasskeyRegister from "@/components/PasskeyRegister";
+import Avatar, { PresetAvatar } from "@/components/Avatar";
+import FileInput from "@/components/FileInput";
+import { AVATAR_PRESETS, defaultPresetForUsername } from "@/lib/avatars";
 import Link from "next/link";
 
 interface PasskeyInfo {
@@ -15,11 +18,13 @@ interface PasskeyInfo {
 }
 
 export default function SettingsPage() {
-  const { status } = useSession();
+  const { data: session, status } = useSession();
   const router = useRouter();
+  const [username, setUsername] = useState("");
   const [displayName, setDisplayName] = useState("");
   const [bio, setBio] = useState("");
   const [avatarUrl, setAvatarUrl] = useState("");
+  const [avatarPreset, setAvatarPreset] = useState<string | null>(null);
   const [email, setEmail] = useState("");
   const [emailVerified, setEmailVerified] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -41,9 +46,11 @@ export default function SettingsPage() {
       fetch("/api/profile")
         .then((r) => r.json())
         .then((data) => {
+          setUsername(data.username || "");
           setDisplayName(data.displayName || "");
           setBio(data.bio || "");
           setAvatarUrl(data.avatarUrl || "");
+          setAvatarPreset(data.avatarPreset || null);
           setEmail(data.email || "");
           setEmailVerified(data.emailVerified || false);
         });
@@ -73,7 +80,12 @@ export default function SettingsPage() {
     const res = await fetch("/api/profile", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ displayName, bio, avatarUrl: avatarUrl || null }),
+      body: JSON.stringify({
+        displayName,
+        bio,
+        avatarUrl: avatarUrl || null,
+        avatarPreset: avatarPreset,
+      }),
     });
     if (res.ok) {
       setSaved(true);
@@ -134,7 +146,7 @@ export default function SettingsPage() {
     <div>
       <Breadcrumbs
         items={[
-          { label: "wishlist", href: "/dashboard" },
+          { label: "stuff.txt", href: "/dashboard" },
           { label: "settings" },
         ]}
       />
@@ -147,15 +159,69 @@ export default function SettingsPage() {
       {/* Avatar */}
       <div style={{ marginBottom: 16 }}>
         <label>avatar</label>
-        {avatarUrl && (
-          <img src={avatarUrl} alt="" style={{ width: 60, height: 60, display: "block", marginBottom: 4 }} />
+
+        {/* Текущий аватар — превью */}
+        <div style={{ marginBottom: 8 }}>
+          <Avatar
+            username={username || session?.user?.username || "?"}
+            avatarUrl={avatarUrl || null}
+            avatarPreset={avatarPreset}
+            size={80}
+            round
+          />
+        </div>
+
+        {/* Пикер пресетов — отключен если есть загруженная картинка */}
+        {!avatarUrl && (
+          <div style={{ marginBottom: 8 }}>
+            <div style={{ fontSize: 13, color: "#666", marginBottom: 4 }}>
+              choose a preset
+            </div>
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              {AVATAR_PRESETS.map((preset) => {
+                const isActive = avatarPreset
+                  ? preset.key === avatarPreset
+                  : preset.key === defaultPresetForUsername(username || "?").key;
+                return (
+                  <button
+                    key={preset.key}
+                    type="button"
+                    onClick={() => setAvatarPreset(preset.key)}
+                    style={{
+                      padding: 2,
+                      border: isActive ? "2px solid #000" : "1px solid #ccc",
+                      background: "#fff",
+                      cursor: "pointer",
+                      lineHeight: 0,
+                    }}
+                    title={preset.key}
+                  >
+                    <PresetAvatar preset={preset} size={48} round />
+                  </button>
+                );
+              })}
+            </div>
+          </div>
         )}
-        <input type="file" accept="image/*" onChange={handleAvatarUpload} style={{ marginBottom: 4 }} />
-        {avatarUrl && (
-          <button onClick={() => setAvatarUrl("")} style={{ fontSize: 13 }}>
-            remove avatar
-          </button>
-        )}
+
+        {/* Загрузка своей картинки */}
+        <div style={{ marginTop: 8 }}>
+          <div style={{ fontSize: 13, color: "#666", marginBottom: 4 }}>
+            or upload your own
+          </div>
+          <div style={{ marginBottom: 4 }}>
+            <FileInput accept="image/*" onChange={handleAvatarUpload} />
+          </div>
+          {avatarUrl && (
+            <button
+              onClick={() => setAvatarUrl("")}
+              style={{ fontSize: 13 }}
+              type="button"
+            >
+              remove uploaded image
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Display Name */}

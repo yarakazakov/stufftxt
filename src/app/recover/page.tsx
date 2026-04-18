@@ -85,7 +85,7 @@ export default function RecoverPage() {
       </p>
 
       {step === "email" && (
-        <form onSubmit={handleSendCode}>
+        <form onSubmit={handleSendCode} noValidate>
           <div style={{ marginBottom: 8 }}>
             <label htmlFor="email">email</label>
             <input
@@ -105,7 +105,7 @@ export default function RecoverPage() {
       )}
 
       {step === "code" && (
-        <form onSubmit={handleVerifyCode}>
+        <form onSubmit={handleVerifyCode} noValidate>
           <p style={{ marginBottom: 8 }}>code sent to {email}</p>
           <div style={{ marginBottom: 8 }}>
             <label htmlFor="code">6-digit code</label>
@@ -125,7 +125,7 @@ export default function RecoverPage() {
       )}
 
       {step === "reset" && (
-        <form onSubmit={handleResetPassword}>
+        <form onSubmit={handleResetPassword} noValidate>
           <div style={{ marginBottom: 8 }}>
             <label htmlFor="newPassword">new key / password</label>
             <input

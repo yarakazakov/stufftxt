@@ -7,6 +7,7 @@ interface FeedPost {
     username: string;
     displayName: string | null;
     avatarUrl: string | null;
+    avatarPreset: string | null;
   };
   date: string;
   folders: {
@@ -15,6 +16,7 @@ interface FeedPost {
     folderSlug: string;
     items: {
       id: number;
+      productId: number;
       title: string;
       url: string | null;
       imageUrl: string | null;
@@ -55,10 +57,16 @@ export async function GET(req: Request) {
     },
     include: {
       user: {
-        select: { username: true, displayName: true, avatarUrl: true },
+        select: { username: true, displayName: true, avatarUrl: true, avatarPreset: true },
       },
       item: {
-        select: { id: true, title: true, url: true, imageUrl: true },
+        select: {
+          id: true,
+          productId: true,
+          product: {
+            select: { title: true, url: true, imageUrl: true },
+          },
+        },
       },
       folder: {
         select: { id: true, name: true, slug: true },
@@ -99,7 +107,13 @@ export async function GET(req: Request) {
 
     // Избегаем дубликатов
     if (!folderGroup.items.some((i) => i.id === event.item.id)) {
-      folderGroup.items.push(event.item);
+      folderGroup.items.push({
+        id: event.item.id,
+        productId: event.item.productId,
+        title: event.item.product.title,
+        url: event.item.product.url,
+        imageUrl: event.item.product.imageUrl,
+      });
     }
   }
 

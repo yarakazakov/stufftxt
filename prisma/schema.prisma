@@ -10,12 +10,15 @@ datasource db {
 model User {
   id            Int       @id @default(autoincrement())
   username      String    @unique
-  passwordHash  String
+  passwordHash  String?
   email         String?
   emailVerified Boolean   @default(false)
   displayName   String?
   avatarUrl     String?
+  avatarPreset  String?
   bio           String?
+  telegramId       BigInt? @unique
+  telegramUsername String?
   createdAt     DateTime  @default(now())
 
   folders        Folder[]
@@ -25,6 +28,17 @@ model User {
   verificationCodes VerificationCode[]
   authenticators Authenticator[]
   feedEvents     FeedEvent[]
+}
+
+model Product {
+  id         Int      @id @default(autoincrement())
+  title      String
+  url        String?
+  imageUrl   String?
+  dedupeKey  String   @unique
+  createdAt  DateTime @default(now())
+
+  items Item[]
 }
 
 model Folder {
@@ -46,15 +60,14 @@ model Item {
   id          Int       @id @default(autoincrement())
   userId      Int
   folderId    Int
-  title       String
+  productId   Int
   description String?
-  url         String?
-  imageUrl    String?
   order       Int       @default(0)
   createdAt   DateTime  @default(now())
 
   user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
   folder     Folder      @relation(fields: [folderId], references: [id], onDelete: Cascade)
+  product    Product     @relation(fields: [productId], references: [id])
   feedEvents FeedEvent[]
 }
 

@@ -15,12 +15,8 @@ interface UserResult {
 interface ItemResult {
   id: number;
   title: string;
+  url: string | null;
   imageUrl: string | null;
-  folder: {
-    name: string;
-    slug: string;
-    user: { username: string };
-  };
 }
 
 export default function SearchPage() {
@@ -59,7 +55,7 @@ export default function SearchPage() {
     <div>
       <Breadcrumbs
         items={[
-          { label: "wishlist", href: session ? "/dashboard" : "/" },
+          { label: "stuff.txt", href: session ? "/dashboard" : "/" },
           { label: "search" },
         ]}
       />
@@ -111,12 +107,22 @@ export default function SearchPage() {
         <div>
           {itemResults.length === 0 && <p style={{ color: "#666" }}>no items found</p>}
           {itemResults.map((item) => (
-            <div key={item.id} style={{ padding: "6px 0", borderBottom: "1px solid #eee" }}>
-              <span style={{ fontWeight: "bold" }}>{item.title}</span>
-              <span style={{ color: "#666" }}>
-                {" "}in &quot;{item.folder.name}&quot; by{" "}
-              </span>
-              <Link href={`/u/${item.folder.user.username}`}>{item.folder.user.username}</Link>
+            <div
+              key={item.id}
+              style={{
+                padding: "6px 0",
+                borderBottom: "1px solid #eee",
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+              }}
+            >
+              {item.imageUrl && (
+                <img src={item.imageUrl} alt="" style={{ width: 32, height: 32, objectFit: "cover" }} />
+              )}
+              <Link href={`/products/${item.id}`} style={{ fontWeight: "bold" }}>
+                {item.title}
+              </Link>
             </div>
           ))}
         </div>

@@ -4,7 +4,7 @@ import SessionProvider from "@/components/SessionProvider";
 import Header from "@/components/Header";
 
 export const metadata: Metadata = {
-  title: "wishlist",
+  title: "stuff.txt",
   description: "your personal wishlist service",
 };
 

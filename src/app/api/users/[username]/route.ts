@@ -16,6 +16,7 @@ export async function GET(
       username: true,
       displayName: true,
       avatarUrl: true,
+      avatarPreset: true,
       bio: true,
       createdAt: true,
       _count: {
@@ -29,6 +30,7 @@ export async function GET(
         include: {
           items: {
             orderBy: { order: "asc" },
+            include: { product: true },
           },
         },
         orderBy: { order: "asc" },

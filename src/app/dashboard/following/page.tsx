@@ -33,7 +33,7 @@ export default function FollowingPage() {
     <div>
       <Breadcrumbs
         items={[
-          { label: "wishlist", href: "/dashboard" },
+          { label: "stuff.txt", href: "/dashboard" },
           { label: "following" },
         ]}
       />
