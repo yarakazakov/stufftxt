@@ -60,15 +60,15 @@ export default function TelegramLoginButton({ callbackUrl = "/dashboard" }: Prop
   }, [router, callbackUrl]);
 
   const handleClick = () => {
-    const botUsername = process.env.NEXT_PUBLIC_TELEGRAM_BOT_USERNAME;
-    if (!botUsername) {
+    const botId = process.env.NEXT_PUBLIC_TELEGRAM_BOT_ID;
+    if (!botId) {
       alert("telegram bot is not configured");
       return;
     }
 
     const origin = window.location.origin;
     const url =
-      `https://oauth.telegram.org/auth?bot_id=${encodeURIComponent(botUsername)}` +
+      `https://oauth.telegram.org/auth?bot_id=${encodeURIComponent(botId)}` +
       `&origin=${encodeURIComponent(origin)}` +
       `&embed=0` +
       `&request_access=write` +
